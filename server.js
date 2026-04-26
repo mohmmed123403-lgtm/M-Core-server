@@ -2,18 +2,26 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const cors = require('cors');
 const app = express();
+
 app.use(cors());
-app.use('/browse', (req, res, next) => {
-    const targetUrl = req.query.url;
-    if (!targetUrl) return res.status(400).send('اكتب?url=الموقع');
-    createProxyMiddleware({
-        target: targetUrl,
-        changeOrigin: true,
-        onProxyRes: function (proxyRes) {
-            delete proxyRes.headers['x-frame-options'];
-            delete proxyRes.headers['content-security-policy'];
-        }
-    })(req, res, next);
+
+app.get('/browse', (req, res) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) return res.status(400).send('URL is required');
+  
+  return createProxyMiddleware({
+    target: targetUrl,
+    changeOrigin: true,
+    followRedirects: true,
+    selfHandleResponse: false,
+    onProxyReq: (proxyReq) => {
+      proxyReq.setHeader('User-Agent', 'Mozilla/5.0');
+    }
+  })(req, res);
 });
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`M-Core Proxy شغال 👑`));
+
+app.get('/', (req, res) => {
+  res.send('M-Core Server is running');
+});
+
+module.exports = app;
